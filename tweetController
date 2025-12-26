@@ -1,0 +1,93 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using BaboGram.DTOs;
+using System.Collections.Generic;
+namespace BABOGRAM.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TweetController : ControllerBase
+    {
+
+        private readonly BaboGramDb _context;
+
+
+        public TweetController(BaboGramDb db)
+        {
+            _context = db;
+        }
+
+        [HttpGet]
+   
+            public List<TweetDto> TumTweetleriGetir()
+            {
+                var liste = _context.Tweetler
+                    .Include(t => t.Kullanici)
+                    .Select(t => new TweetDto
+                    {
+                        Id = t.Id,
+                        Icerik = t.Icerik,
+                        BegeniSayisi = t.BegeniSayisi,
+                           Sahibi = t.Kullanici == null
+        ? null
+        : new KullaniciDto
+        {
+            Id = t.Kullanici.Id,
+            AdSoyad = t.Kullanici.AdSoyad,
+            KullaniciAdi = t.Kullanici.KullaniciAdi
+        }
+})
+                    .ToList();
+            return liste;
+
+        }
+
+        [HttpPost]
+        public string TweetGonder(Tweet yeniTweet)
+        {
+            var kullanici = _context.Kullanicilar.FirstOrDefault(k => k.Id == yeniTweet.KullaniciId);
+            if (kullanici == null)
+            {
+                return "Hata: Kullanıcı bulunamadı. Tweet gönderilemedi.";
+            }
+
+            yeniTweet.BegeniSayisi = 0;
+
+            _context.Tweetler.Add(yeniTweet);
+            _context.SaveChanges();
+
+            return "Başarılı! Tweet veritabanına kazındı sayın " + kullanici.AdSoyad;
+
+        }
+
+        [HttpPut("Begen/{id}")]
+        public string TweetBegen(int id)
+        {
+            var tweet = _context.Tweetler.FirstOrDefault(t => t.Id == id);
+            if (tweet == null)
+            {
+                return "Tweet bulunamadı.";
+            }
+            tweet.BegeniSayisi += 1;
+            _context.SaveChanges();
+            return "Tweet beğenildi! Toplam beğeni sayısı: " + tweet.BegeniSayisi;
+        }
+        [HttpDelete ("Sil/{id}")]
+        public string TweetSil(int id)
+        {
+            var silinecekTweet = _context.Tweetler.FirstOrDefault(t => t.Id == id);
+
+            if(silinecekTweet == null)
+            {
+                return "Hata: " + id + "numarları tweet zaten yok";
+            }
+
+            _context.Tweetler.Remove(silinecekTweet);
+
+            _context.SaveChanges();
+            return "İşlem Tamam! " + id + " numaralı tweet silindi";
+        }
+
+    }
+}
