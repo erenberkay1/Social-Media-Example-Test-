@@ -1,0 +1,50 @@
+---Kullanici
+using BABOGRAM.Controllers;
+using System.Text.Json.Serialization;
+
+namespace BABOGRAM
+
+{
+    public class Kullanici
+    {
+
+        public int Id { get; set; }
+
+        public string? AdSoyad { get; set; }
+
+        public string? KullaniciAdi { get; set; }
+
+        public string? Sifre { get; set; }
+
+        [JsonIgnore]
+        public List<Tweet> ?Tweetleri { get; set; }
+
+
+    }
+}
+
+-- tweet
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+namespace BABOGRAM.Controllers
+{
+    public class Tweet
+    {
+            public int Id { get; set; }
+
+        [Required]
+        [MaxLength(280)]    
+        public string? Icerik { get; set; }
+            public int BegeniSayisi { get; set; } 
+            public int KullaniciId { get; set; }
+
+       
+        public Kullanici ?Kullanici { get; set; }
+
+    }
+
+        
+}
+
+
