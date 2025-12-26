@@ -1,0 +1,126 @@
+using BaboGram.DTOs;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+
+namespace BABOGRAM.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class KullaniciController : ControllerBase
+    {
+        private readonly BaboGramDb _context;
+
+        public KullaniciController(BaboGramDb db)
+        {
+            _context = db;
+        }
+
+
+        [HttpGet]
+        public List<KullaniciDto> TumKullanicilariGetir() 
+        {
+           
+            return _context.Kullanicilar
+                           .Select(k => new KullaniciDto
+                           {
+                               Id = k.Id,
+                               AdSoyad = k.AdSoyad,
+                               KullaniciAdi = k.KullaniciAdi
+                              
+                           })
+                           .ToList();
+        }
+
+
+        [HttpPost]
+        public string UyeOl(Kullanici yeniUye)
+        {
+            bool varMi = _context.Kullanicilar.Any(u => u.KullaniciAdi == yeniUye.KullaniciAdi);
+
+            if(varMi)
+            {
+                return "HATA: Bu kullanıcı adı zaten alınmış!"; 
+            }
+            int yeniId = 1;
+            if (_context.Kullanicilar.Any()) 
+            {
+                yeniId = _context.Kullanicilar.Max(u => u.Id) + 1;
+            }
+            yeniUye.Id = yeniId;
+            _context.Kullanicilar.Add(yeniUye);
+
+            _context.SaveChanges();
+
+            return yeniUye.AdSoyad + " artık veritabanına kayıtlısın cano!";
+
+        }
+        [HttpPost("GirisYap")]
+        public IActionResult GirisYap(BaboGram.DTOs.GirisDto girisBilgisi)
+        {
+            var kullanici = _context.Kullanicilar
+                            .FirstOrDefault(k => k.KullaniciAdi == girisBilgisi.KullaniciAdi && k.Sifre == girisBilgisi.Sifre);
+
+            if (kullanici == null)
+            {
+                
+                return BadRequest("HATA: Kullanıcı adı veya şifre yanlış babo!");
+            }
+
+            return Ok(new
+            {
+                Id = kullanici.Id,
+                AdSoyad = kullanici.AdSoyad,
+                Mesaj = "Giriş Başarılı!"
+            });
+        }
+
+        [HttpPost("UyeOl")]
+        public IActionResult UyeOl(BaboGram.DTOs.KayitDto gelenVeri)
+        {
+        
+            if (string.IsNullOrEmpty(gelenVeri.KullaniciAdi) || string.IsNullOrEmpty(gelenVeri.Sifre))
+            {
+                return BadRequest("HATA: Kullanıcı adı ve şifre boş olamaz!");
+            }
+
+            bool varMi = _context.Kullanicilar.Any(u => u.KullaniciAdi == gelenVeri.KullaniciAdi);
+            if (varMi)
+            {
+                return BadRequest("HATA: Bu kullanıcı adı zaten alınmış babo!");
+            }
+
+         
+            var yeniUye = new Kullanici
+            {
+                AdSoyad = gelenVeri.AdSoyad,
+                KullaniciAdi = gelenVeri.KullaniciAdi,
+                Sifre = gelenVeri.Sifre 
+            };
+
+            _context.Kullanicilar.Add(yeniUye);
+            _context.SaveChanges();
+
+            return Ok("Tebrikler! Kayıt başarılı.");
+        }
+
+
+        [HttpPut]
+        public string KullaniciGuncelle(Kullanici gelenBilgi)
+        {
+
+            var eskiKullanici = _context.Kullanicilar.FirstOrDefault(u => u.Id == gelenBilgi.Id);
+
+            if (eskiKullanici == null)
+            {
+                return "HATA: Böyle bir kullanıcı bulunamadı!";
+            }
+
+            eskiKullanici.AdSoyad = gelenBilgi.AdSoyad;
+            eskiKullanici.KullaniciAdi = gelenBilgi.KullaniciAdi;
+
+             _context.SaveChanges();
+
+            return "İşlem Tamam! Yeni adın: " + eskiKullanici.AdSoyad;
+        }
+    }
+}
